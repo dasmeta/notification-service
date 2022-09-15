@@ -1,0 +1,69 @@
+env: &env
+  environment:
+    CLOUDSDK_COMPUTE_ZONE: europe-west1-c
+    CLUSTER_NAME: cluster-3
+    GCLOUD_PROJECT: valued-bastion-137423
+#  branches:
+#    only:
+#      - master
+
+gcloud_auth: &gcloud_auth
+  name: "Store Service Account"
+  command: |
+    echo ${GCLOUD_SERVICE_KEY} | base64 --decode -i > ${HOME}/gcloud-service-key.json
+    gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+    gcloud --quiet config set project ${GCLOUD_PROJECT}
+    gcloud --quiet config set container/cluster ${CLUSTER_NAME}
+    gcloud --quiet config set compute/zone ${CLOUDSDK_COMPUTE_ZONE}
+    gcloud --quiet container clusters get-credentials ${CLUSTER_NAME}
+
+version: 2
+jobs:
+  build:
+    <<: *env
+    machine:
+      docker_layer_caching: true
+    steps:
+      - run:
+          <<: *gcloud_auth
+      - checkout
+      - run:
+          name: "Build Image"
+          command: |
+            docker build -t gcr.io/${GCLOUD_PROJECT}/trainer-notification-backend:${CIRCLE_SHA1} .
+            docker tag gcr.io/${GCLOUD_PROJECT}/trainer-notification-backend:${CIRCLE_SHA1} gcr.io/${GCLOUD_PROJECT}/trainer-notification-backend:latest
+      - run:
+          name: "Push Image"
+          command: |
+            gcloud docker -- push gcr.io/${GCLOUD_PROJECT}/trainer-notification-backend:${CIRCLE_SHA1}
+            gcloud docker -- push gcr.io/${GCLOUD_PROJECT}/trainer-notification-backend:latest
+  deploy:
+    <<: *env
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          <<: *gcloud_auth
+      - run:
+          name: Deploy Via Kubectl
+          command: |
+            kubectl set image deployment/trainer-notification-backend trainer-notification-backend="gcr.io/valued-bastion-137423/trainer-notification-backend:"${CIRCLE_SHA1}
+
+workflows:
+  version: 2
+  build_deploy:
+    jobs:
+      - build:
+          context: org-global
+          filters:
+            branches:
+              only:
+                - master
+      - deploy:
+          context: org-global
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
