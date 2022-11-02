@@ -17,34 +17,7 @@ const uuid = require("uuid/v4");
 const htmlToText = require("html-to-text");
 const QRCode = require("qrcode");
 
-const mailgunApiHosts = {
-  EU: "api.eu.mailgun.net",
-  US: "api.mailgun.net",
-};
-
-const mailgunDomainSettings = [
-  {
-    domain: "schoolege.com",
-    fromMatchRegex: /\.*schoolege\.com\.*/,
-    host: mailgunApiHosts.EU,
-  },
-  {
-    domain: "mg.tutor-platform.com",
-    fromMatchRegex: /\.*tutor-platform\.com\.*/,
-    host: mailgunApiHosts.EU,
-  },
-  {
-    domain: "mg.course.am",
-    fromMatchRegex: /\.*course\.am\.*/,
-    host: mailgunApiHosts.EU,
-  },
-  {
-    domain: "mg.tutorbot.io",
-    fromMatchRegex: /\.*tutorbot\.io\.*/,
-    host: mailgunApiHosts.US,
-    isDefault: true,
-  },
-];
+const mailgunDomainSettings = JSON.parse(process.env.MAILGUN_DOMAIN_SETTINGS || "{}", (key, value) => key === 'fromMatchRegex' ? new RegExp(value) : value);
 
 const cachedNodemailerTransports = {};
 
@@ -85,20 +58,12 @@ const sendMail = async (params) => {
 };
 
 const sendInAppMessage = async (value) => {
-  const TUTORBOT_BACKEND_URL =
-    process.env.NODE_ENV === "production"
-      ? "https://app.tutor-platform.com"
-      : "http://localhost:1337";
-  const TUTORBOT_API_KEY = "42624f50-215b-4aa9-8219-073febdd17ac";
-
   const options = {
-    headers: {
-      "X-API-KEY": TUTORBOT_API_KEY,
-    },
+    headers: JSON.parse(process.env.IN_APP_MESSAGE_API_HEADERS || "{}")
   };
 
   return await axios.post(
-    `${TUTORBOT_BACKEND_URL}/api/external/send-mobile-notification`,
+    `${process.env.IN_APP_MESSAGE_API_URL}`,
     value,
     options
   );
