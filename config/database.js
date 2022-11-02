@@ -10,6 +10,7 @@ module.exports = ({ env }) => ({
         database: env("DATABASE_NAME"),
         username: env("DATABASE_USERNAME"),
         password: env("DATABASE_PASSWORD"),
+        uri: env("DATABASE_URL"),
         autoIndex: false,
       },
       options: {
