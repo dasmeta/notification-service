@@ -380,6 +380,7 @@ module.exports = {
         switch (item.channel) {
           case "in-app": {
             messageBody.text = item.body;
+            messageBody.url = (item.data || {}).url;
             const res = await sendInAppMessage(messageBody);
             result.sent = res.status === 200;
             result.history.push({
