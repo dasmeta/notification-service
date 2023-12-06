@@ -8,23 +8,53 @@ module.exports = async (ctx, next) => {
         return next();
     }
 
-    if (ctx.request && ctx.request.header && ctx.request.header.authorization) {
+    if (
+        (ctx.request && ctx.request.header) && 
+        ctx.request.header.authorization || ctx.request.header['x-api-key']
+    ) {
         try {
-            const { id, ...data } = await strapi.plugins['users-permissions'].services.jwt.getToken(ctx);
+            // init `id` and `isAdmin` outside of validation blocks
+            let id;
+            let isAdmin;
 
-            /////////////// custom code for determining/filtering data by partnerId
-            if (data.partnerId && data.role !== 'admin') {
-                ctx.state.partnerId = data.partnerId;
+            if (ctx.request.header['x-api-key']) {
+                // find the token entry that match the token from the request
+                const [token] = await strapi.query('token').find({token: ctx.request.header['x-api-key']});
+
+                if (!token) {
+                    throw new Error(`Invalid token: This token doesn't exist`);
+                } else {
+                    if (token.user && typeof token.token === 'string') {
+                      id = token.user.id;
+                    }
+                    isAdmin = false;
+                }
+
+                delete ctx.request.header['x-api-key'];
+            } else if (ctx.request && ctx.request.header && ctx.request.header.authorization) {
+                // use the current system with JWT in the header
+                const decoded = await strapi.plugins[
+                    'users-permissions'
+                ].services.jwt.getToken(ctx);
+        
+                id = decoded.id;
+                isAdmin = decoded.isAdmin || false;
+
+                /////////////// custom code for determining/filtering data by partnerId
+                if (decoded.partnerId && decoded.role !== 'admin') {
+                    ctx.state.partnerId = decoded.partnerId;
+                }
             }
 
             if (id === undefined) {
-                /////////////////////// custom code for authenticating non existing user as root/authenticated type user for legacy
-                // @TODO: get rid of this custom code by using backend API calls instead of direct frontend calls to notification server APIs
-                if (data.role) {
-                    const type = data.role === 'admin' ? 'root' : 'authenticated';
-                    role = await strapi.query('role', 'users-permissions').findOne({ type }, []);
+                if (isAdmin) {
+                    ctx.state.admin = await strapi
+                    .query("administrator", "admin")
+                    .findOne({ id });
                 } else {
-                    throw new Error('Invalid token: Token did not contain required fields');
+                    ctx.state.user = await strapi
+                    .query("user", "users-permissions")
+                    .findOne({ id });
                 }
             }
 
