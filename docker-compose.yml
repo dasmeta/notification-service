@@ -1,0 +1,29 @@
+version: '3'
+services:
+  strapi-notifications:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    command: >
+      bash -c "yarn
+      && yarn develop"
+    volumes:
+      - ./api:/usr/src/app/api
+    #   - ./app:/usr/src/app
+    ports:
+      - 2337:2337
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:4
+    environment:
+      MONGO_INITDB_DATABASE: strapi
+      MONGO_INITDB_ROOT_USERNAME: strapi
+      MONGO_INITDB_ROOT_PASSWORD: strapi
+    ports:
+      - '27917:27017'
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:

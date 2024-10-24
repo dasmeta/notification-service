@@ -176,10 +176,14 @@ module.exports = {
 
   generate: async (notificationId, partnerId, key, date, data, uniqueKey, attachmentData) => {
     const mapping = {};
-    const notificationsGeneral = await strapi.models.notificationemail.find({ key, partnerId: '' });
-    notificationsGeneral.forEach(item => {
-      mapping[`${item.key}${item.channel || ''}`] = item;
-    });
+
+    if(process.env.ENABLE_GENERAL_TEMPLATES && process.env.ENABLE_GENERAL_TEMPLATES == 'true') {
+      const notificationsGeneral = await strapi.models.notificationemail.find({ key, partnerId: '' });
+      notificationsGeneral.forEach(item => {
+        mapping[`${item.key}${item.channel || ''}`] = item;
+      });
+    }
+    
     const notificationsByPartner = await strapi.models.notificationemail.find({ key, partnerId });
     notificationsByPartner.forEach(item => {
       mapping[`${item.key}${item.channel || ''}`] = item;
