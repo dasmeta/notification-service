@@ -20,13 +20,13 @@ module.exports = {
       return notificationList.length;
     }
 
-    if (uniqueKey) {
-      const nowDate = new Date();
-      await strapi.models.queueemail.updateMany(
-        { uniqueKey, cancel: false, sent: false, date: { $gte: new Date(nowDate.setMonth(nowDate.getMonth() - 2)) } },
-        { $set: { cancel: true } }
-      );
-    }
+    // if (uniqueKey) {
+    //   const nowDate = new Date();
+    //   await strapi.models.queueemail.updateMany(
+    //     { uniqueKey, cancel: false, sent: false, date: { $gte: new Date(nowDate.setMonth(nowDate.getMonth() - 2)) } },
+    //     { $set: { cancel: true } }
+    //   );
+    // }
 
     return await Promise.all(notificationList.map(
       async item => {
