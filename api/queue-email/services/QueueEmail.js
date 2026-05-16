@@ -337,7 +337,7 @@ module.exports = {
     );
     const base =
       process.env.NODE_ENV === "production"
-        ? "https://app.tutorbot.io/notification-api"
+        ? "https://app.tutor-platform.com/notification-api"
         : "http://localhost:2337";
 
     const idList = list.map((item) => item._id);
